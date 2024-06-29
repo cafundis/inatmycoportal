@@ -316,17 +316,6 @@ if ( $response && isset( $response['access_token'] ) ) {
 				&& isset( $inatdata['results'][0]['id'] )
 			) {
 				$observationid = $inatdata['results'][0]['id'];
-			} else {
-				$url = $inatapi . 'observations?field%3AFUNDIS+Tag+Number=' . $catalogNumber;
-				$inatdata = make_curl_request( $url );
-				sleep( 1 );
-				if ( $inatdata
-					&& isset( $inatdata['results'] )
-					&& isset( $inatdata['results'][0] )
-					&& isset( $inatdata['results'][0]['id'] )
-				) {
-					$observationid = $inatdata['results'][0]['id'];
-				}
 			}
 			// If we successfully got the iNaturalist observation ID ...
 			if ( $observationid ) {
