@@ -13,3 +13,4 @@ If you want to test the script by only running it for a few occurence records (r
 ```
 php ./inatmycoportal.php 5
 ```
+If you would like the script to keep a log, create a writable file in the same directory named `log.txt`. The script will then append a log of all actions to the log file.

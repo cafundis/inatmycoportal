@@ -185,6 +185,12 @@ function make_curl_request( $url = null, $token = null, $postData = null ) {
 	}
 }
 
+function logMessage( $message ) {
+	if ( is_writable( 'log.txt' ) ) {
+		file_put_contents( 'log.txt', $message . "\n", FILE_APPEND );
+	}
+}
+
 function iNat_auth_request( $app_id, $app_secret, $username, $password, $url = 'https://www.inaturalist.org/oauth/token' ) {
 	global $useragent, $errors;
 	$curl = curl_init();
@@ -230,6 +236,7 @@ function post_mycoportal_link( $observationid, $link, $token ) {
 			$errors[] = 'MyCoPortal link could not be added for observation ' . $observationid . '. The owner may have this permission restricted.';
 			return false;
 		} else {
+			logMessage( "MyCoPortal link added to observation " . $observationid . "." );
 			return true;
 		}
 	} else {
@@ -254,6 +261,7 @@ function post_fungarium( $observationid, $code, $token ) {
 				$errors[] = 'Fungarium location could not be added for observation ' . $observationid . '. The owner may have this permission restricted.';
 				return false;
 			} else {
+				logMessage( "Fungarium location added to observation " . $observationid . "." );
 				return true;
 			}
 		} else {
@@ -283,12 +291,15 @@ function get_mycoportal_link( $observationid ) {
 }
 
 print("------------------ SCRIPT STARTED ------------------\n");
+$date = new DateTime();
+$date = $date->format("Y-m-d h:i:s");
+logMessage( "Script begun at " . $date . "." );
 $start_time = microtime( true );
 $myFile = "occurrences.csv";
 if ( isset( $argv[1] ) ) {
 	$recordlimit = $argv[1];
 } else {
-	$recordlimit = 1;
+	$recordlimit = 100000;
 }
 
 // Get authentication token
@@ -305,6 +316,7 @@ if ( $response && isset( $response['access_token'] ) ) {
 			$institionCode = (isset($data[1]) && $data[1]) ? $data[1] : null;
 			$catalogNumber = (isset($data[7]) && $data[7]) ? $data[7] : null;
 			$references = (isset($data[91]) && $data[91]) ? $data[91] : null;
+			logMessage( "Processing " . $catalogNumber . "." );
 			// Get the iNaturalist observation ID
 			$observationid = null;
 			$url = $inatapi . 'observations?field%3AAccession+Number=' . $catalogNumber;
@@ -367,3 +379,6 @@ $end_time = microtime( true );
 $execution_time = ( $end_time - $start_time );
 print( "Execution time: " . $execution_time . " seconds.\n" );
 print("------------------ SCRIPT TERMINATED ------------------\n");
+$date = new DateTime();
+$date = $date->format("Y-m-d h:i:s");
+logMessage( "Script ended at " . $date . "." );
