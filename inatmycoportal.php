@@ -265,6 +265,23 @@ function post_fungarium( $observationid, $code, $token ) {
 	}
 }
 
+function get_mycoportal_link( $observationid ) {
+	global $inatapi, $errors;
+	$url = $inatapi . 'observations/' . $observationid;
+	$inatdata = make_curl_request( $url );
+	sleep( 1 );
+	if ( $inatdata && $inatdata['results'] && $inatdata['results'][0] ) {
+		if ( isset( $inatdata['results'][0]['ofvs'] ) ) {
+			foreach ( $inatdata['results'][0]['ofvs'] as $observation_field ) {
+				if ( $observation_field['name'] === 'MyCoPortal Link' ) {
+					return $observation_field['value'];
+				}
+			}
+		}
+	}
+	return null;
+}
+
 print("------------------ SCRIPT STARTED ------------------\n");
 $start_time = microtime( true );
 $myFile = "occurrences.csv";
@@ -313,14 +330,20 @@ if ( $response && isset( $response['access_token'] ) ) {
 			}
 			// If we successfully got the iNaturalist observation ID ...
 			if ( $observationid ) {
-				// ... and the MyCoPortal link is valid ...
-				if ( filter_var( $references, FILTER_VALIDATE_URL ) ) {
-					// ... post the MyCoPortal link to the iNaturalist observation
-					$updateResult1 = post_mycoportal_link( $observationid, $references, $token );
+				// ... and the MyCoPortal link is not already set ...
+				if ( !get_mycoportal_link( $observationid ) ) {
+					// ... and the new MyCoPortal link is valid ...
+					if ( filter_var( $references, FILTER_VALIDATE_URL ) ) {
+						// ... post the MyCoPortal link to the iNaturalist observation
+						$updateResult1 = post_mycoportal_link( $observationid, $references, $token );
+					} else {
+						$errors[] = 'MyCoPortal link is not a valid URL for ' . $catalogNumber . '.';
+					}
+					// Post the fungarium location to the iNaturalist observation
+					$updateResult2 = post_fungarium( $observationid, $institionCode, $token );
 				} else {
-					$errors[] = 'MyCoPortal link is not a valid URL for ' . $catalogNumber . '.';
+					$errors[] = 'MyCoPortal link already set for ' . $catalogNumber . '.';
 				}
-				$updateResult2 = post_fungarium( $observationid, $institionCode, $token );
 			} else {
 				$errors[] = 'No observation found for ' . $catalogNumber . '.';
 			}
