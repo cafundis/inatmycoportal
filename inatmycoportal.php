@@ -7,25 +7,143 @@ $inatapi = 'https://api.inaturalist.org/v1/';
 $errors = [];
 $logging = false;
 
-function logMessage( $message ) {
-	if ( is_writable( 'log.txt' ) ) {
-		file_put_contents( 'log.txt', $message . "\n", FILE_APPEND );
-	}
-}
-
-function resetLog() {
-	global $errors;
-	$fp = fopen( 'log.txt', 'w' );
-	if ( $fp ) {
-		$date = new DateTime();
-		$date = $date->format("Y-m-d h:i:s");
-		fwrite( $fp, $date);
-		fwrite( $fp, PHP_EOL);
-		fclose( $fp );
-	} else {
-		$errors[] = 'Log file is not writable. Please check permissions.';
-	}
-}
+$fungariums = [
+"PH"=>"Academy of Natural Sciences of Drexel University (PH)",
+"ACAD"=>"Acadia University, E. C. Smith Herbarium (ACAD)",
+"ETH"=>"Addis Ababa University (ETH)",
+"CHSC"=>"Ahart Herbarium, CSU Chico - Mycological Collection (CHSC)",
+"BMSC"=>"Bamfield Marine Science Centre (BMSC)",
+"BISH"=>"Bishop Museum, Herbarium Pacificum (BISH)",
+"BRIT"=>"Botanical Research Institute of Texas (BRIT)",
+"BDWR"=>"Bridgewater College Herbarium (BDWR)",
+"BRU"=>"Brown University Herbarium (BRU)",
+"HSC-F"=>"Cal Poly Humboldt Fungarium (HSC-F)",
+"CDA-Fungi"=>"California Department of Food and Agriculture - Fungi (CDA-Fungi)",
+"HAY"=>"California State University East Bay Fungarium (HAY)",
+"AAFC-DAOM"=>"Canadian National Mycological Herbarium (AAFC-DAOM)",
+"WSP"=>"Charles Gardner Shaw Mycological Herbarium, Washington State University (WSP)",
+"CHRB"=>"Chrysler Herbarium - Mycological Collection (CHRB)",
+"CLEMS"=>"Clemson University Herbarium (CLEMS)",
+"HCOA"=>"College of the Atlantic, Acadia National Park Herbarium (HCOA)",
+"CUP"=>"Cornell University Plant Pathology Herbarium (CUP)",
+"CBBG"=>"Crested Butte Botanic Gardens (CBBG)",
+"DEWV"=>"Davis & Elkins College Herbarium (DEWV)",
+"DBG-DBG"=>"Denver Botanic Gardens, Sam Mitchel Herbarium of Fungi (DBG-DBG)",
+"DUKE"=>"Duke University Herbarium Fungal Collection (DUKE)",
+"EIU"=>"Eastern Illinois University (EIU)",
+"QCAM"=>"Ecuador Fungi data from FungiWebEcuador (QCAM)",
+"TAM"=>"Estonian Museum of Natural History (TAM)",
+"BAFC-H"=>"Facultad de Ciencias Exactas y Naturales (BAFC-H)",
+"F"=>"Field Museum of Natural History (F)",
+"FNL"=>"Foray Newfoundland and Labrador Fungarium (FNL)",
+"FLD"=>"Fort Lewis College Herbarium (FLD)",
+"GLM"=>"Fungal Collection at the Senckenberg Museum für Naturkunde Görlitz (GLM)",
+"M"=>"Fungal Collections at the Botanische Staatssammlung München (M)",
+"KR"=>"Fungus Collections at Staatliches Museum für Naturkunde Karlsruhe (KR)",
+"FH"=>"Harvard University, Farlow Herbarium (FH)",
+"FR"=>"Herbarium Senckenbergianum (FR)",
+"IND"=>"Indiana University (IND)",
+"INEP-F"=>"Institute of the Industrial Ecology Problems of the North of Kola Science Center of the Russian Academy of Sciences. (INEP-F)",
+"PACA"=>"Instituto Anchietano de Pesquisas/UNISINOS (PACA)",
+"USU-UTC"=>"Intermountain Herbarium (fungi, not lichens), Utah State University (USU-UTC)",
+"ICMP"=>"International Collection of Microorganisms from Plants (ICMP)",
+"ISC"=>"Iowa State University, Ada Hayden Herbarium (ISC)",
+"SUCO"=>"Jewell and Arline Moss Settle Herbarium at SUNY Oneonta (SUCO)",
+"KEAN"=>"Kean University (KEAN)",
+"LSUM-Fungi"=>"Louisiana State University, Bernard Lowy Mycological Herbarium (LSUM-Fungi)",
+"MUHW"=>"Marshall University Herbarium - Fungi (MUHW)",
+"BR"=>"Meise Botanic Garden Herbarium (BR)",
+"MU"=>"Miami University, Willard Sherman Turrell Herbarium (MU)",
+"MSC"=>"Michigan State University Herbarium non-lichenized fungi (MSC)",
+"MOR"=>"Morton Arboretum (MOR)",
+"CORD"=>"Museo Botánico Córdoba Fungarium (CORD)",
+"CR"=>"Museo Nacional de Costa Rica (CR)",
+"PC"=>"Muséum National d'Histoire Naturelle (PC)",
+"MNA"=>"Museum of Northern Arizona (MNA)",
+"IBUNAM-MEXU:FU"=>"National Herbarium of Mexico Fungal Collection (Hongos del Herbario Nacional de México) (IBUNAM-MEXU:FU)",
+"TNS-F"=>"National Museum of Nature and Science - Japan (TNS-F)",
+"NMC-FUNGI"=>"National Mushroom Centre (NMC-FUNGI)",
+"UT-M"=>"Natural History Museum of Utah Fungarium (UT-M)",
+"L"=>"Naturalis Biodiversity Center (L)",
+"NBM"=>"New Brunswick Museum (NBM)",
+"NY"=>"New York Botanical Garden (NY)",
+"NYS"=>"New York State Museum Mycology Collection (NYS)",
+"PDD"=>"New Zealand Fungarium (PDD)",
+"NCSLG"=>"North Carolina State University, Larry F. Grand Mycological Herbarium (NCSLG)",
+"ODU-Fungi"=>"Old Dominion University Natural History Collection - Fungi (ODU-Fungi)",
+"OSC-Lichens"=>"Oregon State University Herbarium - Lichens (OSC-Lichens)",
+"OSC"=>"Oregon State University Herbarium (OSC)",
+"PIORIN"=>"Państwowa Inspekcja Ochrony Roślin i Nasiennictwa - Fungi (PIORIN)",
+"USFWS-PRR"=>"Patuxent Research Refuge - Maryland (USFWS-PRR)",
+"PUR"=>"Purdue University, Arthur Fungarium (PUR)",
+"PUL"=>"Purdue University, Kriebel Herbarium (PUL)",
+"QFB"=>"René Pomerleau Herbarium (QFB)",
+"E"=>"Royal Botanic Garden Edinburgh (E)",
+"TRTC"=>"Royal Ontario Museum Fungarium (TRTC)",
+"TAES"=>"S.M. Tracy Herbarium Texas A&M University (TAES)",
+"SFSU"=>"San Francisco State University, Harry D. Thiers Herbarium (SFSU)",
+"SBBG"=>"Santa Barbara Botanic Garden (SBBG)",
+"LJF"=>"Slovenian Fungal Database (Mikoteka in herbarij Gozdarskega inštituta Slovenije) (LJF)",
+"CORT"=>"State University of New York College at Cortland (CORT)",
+"SYRF"=>"State University of New York, SUNY College of Environmental Science and Forestry Herbarium (SYRF)",
+"SWAT"=>"Swat University Fungarium (SWAT)",
+"S"=>"Swedish Museum of Natural History (S)",
+"TALL"=>"Tallinn Botanic Garden (TALL)",
+"IBUG"=>"Universidad de Guadalajara (IBUG)",
+"CMMF"=>"Université de Montréal, Cercle des Mycologues de Montréal Fungarium (CMMF)",
+"UACCC"=>"University of Alabama Chytrid Culture Collection (UACCC)",
+"ARIZ"=>"University of Arizona, Gilbertson Mycological Herbarium (ARIZ)",
+"UARK"=>"University of Arkansas Fungarium (UARK)",
+"UBC"=>"University of British Columbia Herbarium (UBC)",
+"UC"=>"University of California Berkeley, University Herbarium (UC)",
+"UCSC"=>"University of California Santa Cruz Fungal Herbarium (UCSC)",
+"IRVC"=>"University of California, Irvine Fungarium (IRVC)",
+"LA"=>"University of California, Los Angeles (LA)",
+"FTU"=>"University of Central Florida (FTU)",
+"CSU"=>"University of Central Oklahoma Herbarium (CSU)",
+"CINC"=>"University of Cincinnati, Margaret H. Fulford Herbarium - Fungi (CINC)",
+"C"=>"University of Copenhagen (C)",
+"FLAS"=>"University of Florida Herbarium (FLAS)",
+"GAM"=>"University of Georgia, Julian H. Miller Mycological Herbarium (GAM)",
+"GB"=>"University of Gothenburg (GB)",
+"HAW-F"=>"University of Hawaii, Joseph F. Rock Herbarium (HAW-F)",
+"ILL"=>"University of Illinois Herbarium (ILL)",
+"ILLS"=>"University of Illinois, Illinois Natural History Survey Fungarium (ILLS)",
+"KANU-KU-F"=>"University of Kansas, R. L. McGregor Herbarium (KANU-KU-F)",
+"MAINE"=>"University of Maine, Richard Homola Mycological Herbarium (MAINE)",
+"WIN"=>"University of Manitoba (WIN)",
+"MICH"=>"University of Michigan Herbarium (MICH)",
+"MIN"=>"University of Minnesota, Bell Museum of Natural History Herbarium Fungal Collection (MIN)",
+"MISS"=>"University of Mississippi (MISS)",
+"MONTU"=>"University of Montana Herbarium (MONTU)",
+"NEB"=>"University of Nebraska State Museum, C.E. Bessey Herbarium - Fungi (NEB)",
+"UNM-Fungi"=>"University of New Mexico Herbarium Mycological Collection (UNM-Fungi)",
+"UNCA-UNCA"=>"University of North Carolina Asheville (UNCA-UNCA)",
+"NCU-Fungi"=>"University of North Carolina at Chapel Hill Herbarium: Fungi (NCU-Fungi)",
+"O"=>"University of Oslo, Natural History Museum Fungarium (O)",
+"URV"=>"University of Richmond (URV)",
+"USAM"=>"University of South Alabama Herbarium (USAM)",
+"USCH-Fungi"=>"University of South Carolina, A. C. Moore Herbarium Fungal Collection (USCH-Fungi)",
+"USF"=>"University of South Florida Herbarium - Fungi including lichens (USF)",
+"TU"=>"University of Tartu Natural History Museum (TU)",
+"TENN-F"=>"University of Tennessee Fungal Herbarium (TENN-F)",
+"UCHT-F"=>"University of Tennessee, Chattanooga (UCHT-F)",
+"TEX"=>"University of Texas Herbarium (TEX)",
+"VT"=>"University of Vermont, Pringle Herbarium, Macrofungi (VT)",
+"WTU"=>"University of Washington Herbarium (WTU)",
+"UWAL"=>"University of West Alabama Fungarium (UWAL)",
+"WIS"=>"University of Wisconsin-Madison Herbarium (WIS)",
+"UWSP"=>"University of Wisconsin-Stevens Point Herbarium (UWSP)",
+"RMS"=>"University of Wyoming, Wilhelm G. Solheim Mycological Herbarium (RMS)",
+"UPS-BOT"=>"Uppsala University, Museum of Evolution (UPS-BOT)",
+"USAC-USCG Hongos"=>"Usac, Cecon, Herbario USCG Hongos (USAC-USCG Hongos)",
+"CFMR"=>"USDA Forest Service, Center for Forest Mycology Research (CFMR)",
+"FPF"=>"USDA Forest Service, Rocky Mountain Research Station (FPF)",
+"BPI"=>"USDA United States National Fungus Collections (BPI)",
+"VSC"=>"Valdosta State University Herbarium (VSC)",
+"VPI"=>"Virginia Tech University, Massey Herbarium - Fungi (VPI)",
+"YSU-F"=>"Yugra State University Fungarium (YSU-F)"
+];
 
 function make_curl_request( $url = null, $token = null, $postData = null ) {
 	global $useragent, $errors;
@@ -119,6 +237,34 @@ function post_mycoportal_link( $observationid, $link, $token ) {
 	}
 }
 
+// Post Fungarium Accession Location to iNaturalist
+function post_fungarium( $observationid, $code, $token ) {
+	global $inatapi, $errors, $fungariums;
+	if ( isset( $fungariums[$code] ) ) {
+		$postData['observation_field_value'] = [];
+		$postData['observation_field_value']['observation_id'] = intval( $observationid );
+		$postData['observation_field_value']['value'] = $fungariums[$code];
+		$postData['observation_field_value']['observation_field_id'] = 18006;
+		$postData = json_encode( $postData );
+		$url = $inatapi . 'observation_field_values';
+		$response = make_curl_request( $url, $token, $postData );
+		sleep( 1 );
+		if ( $response ) {
+			if ( isset( $response['error'] ) ) {
+				$errors[] = 'Fungarium location could not be added for observation ' . $observationid . '. The owner may have this permission restricted.';
+				return false;
+			} else {
+				return true;
+			}
+		} else {
+			return false;
+		}
+	} else {
+		$errors[] = 'No fungarium found for code ' . $code . '.';
+		return false;
+	}
+}
+
 print("------------------ SCRIPT STARTED ------------------\n");
 $start_time = microtime( true );
 $myFile = "occurrences.csv";
@@ -136,7 +282,8 @@ if ( $response && isset( $response['access_token'] ) ) {
 	if (($fh = fopen($myFile, "r")) !== FALSE) {
 		$data = fgetcsv($fh, 0, ","); // Get headers
 		while (($data = fgetcsv($fh, 0, ",")) !== FALSE && $x < $recordlimit) {
-			$updateResult = false;
+			$updateResult1 = false;
+			$updateResult2 = false;
 			$errors = [];
 			$institionCode = (isset($data[1]) && $data[1]) ? $data[1] : null;
 			$catalogNumber = (isset($data[7]) && $data[7]) ? $data[7] : null;
@@ -169,17 +316,18 @@ if ( $response && isset( $response['access_token'] ) ) {
 				// ... and the MyCoPortal link is valid ...
 				if ( filter_var( $references, FILTER_VALIDATE_URL ) ) {
 					// ... post the MyCoPortal link to the iNaturalist observation
-					$updateResult = post_mycoportal_link( $observationid, $references, $token );
+					$updateResult1 = post_mycoportal_link( $observationid, $references, $token );
 				} else {
 					$errors[] = 'MyCoPortal link is not a valid URL for ' . $catalogNumber . '.';
 				}
+				$updateResult2 = post_fungarium( $observationid, $institionCode, $token );
 			} else {
 				$errors[] = 'No observation found for ' . $catalogNumber . '.';
 			}
-			if ( $updateResult ) {
+			if ( $updateResult1 && $updateResult2 ) {
 				print( $catalogNumber . " successfully updated: " . $observationid . ".\n" );
 			} else {
-				print( $catalogNumber . " not updated.\n" );
+				print( $catalogNumber . " not successfully updated.\n" );
 			}
 			if ( $errors ) {
 				if ( count($errors) === 1 ) {
