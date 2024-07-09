@@ -304,76 +304,78 @@ if ( isset( $argv[1] ) ) {
 
 // Get authentication token
 $response = iNat_auth_request( $app_id, $app_secret, $username, $password );
-if ( $response && isset( $response['access_token'] ) ) {
-	$token = $response['access_token'];	
-
-	if (($fh = fopen($myFile, "r")) !== FALSE) {
-		$data = fgetcsv($fh, 0, ","); // Get headers
-		while (($data = fgetcsv($fh, 0, ",")) !== FALSE && $x < $recordlimit) {
-			$updateResult1 = false;
-			$updateResult2 = false;
-			$errors = [];
-			$institionCode = (isset($data[1]) && $data[1]) ? $data[1] : null;
-			$catalogNumber = (isset($data[7]) && $data[7]) ? $data[7] : null;
-			$references = (isset($data[91]) && $data[91]) ? $data[91] : null;
-			logMessage( "Processing " . $catalogNumber . "." );
-			// Get the iNaturalist observation ID
-			$observationid = null;
-			$url = $inatapi . 'observations?field%3AAccession+Number=' . $catalogNumber;
-			$inatdata = make_curl_request( $url );
-			sleep( 1 );
-			if ( $inatdata
-				&& isset( $inatdata['results'] )
-				&& isset( $inatdata['results'][0] )
-				&& isset( $inatdata['results'][0]['id'] )
-			) {
-				$observationid = $inatdata['results'][0]['id'];
-			}
-			// If we successfully got the iNaturalist observation ID ...
-			if ( $observationid ) {
-				// ... and the MyCoPortal link is not already set ...
-				if ( !get_mycoportal_link( $observationid ) ) {
-					// ... and the new MyCoPortal link is valid ...
-					if ( filter_var( $references, FILTER_VALIDATE_URL ) ) {
-						// ... post the MyCoPortal link to the iNaturalist observation
-						$updateResult1 = post_mycoportal_link( $observationid, $references, $token );
+if ( $response ) {
+	if ( isset( $response['access_token'] ) ) {
+		$token = $response['access_token'];	
+	
+		if (($fh = fopen($myFile, "r")) !== FALSE) {
+			$data = fgetcsv($fh, 0, ","); // Get headers
+			while (($data = fgetcsv($fh, 0, ",")) !== FALSE && $x < $recordlimit) {
+				$updateResult1 = false;
+				$updateResult2 = false;
+				$errors = [];
+				$institionCode = (isset($data[1]) && $data[1]) ? $data[1] : null;
+				$catalogNumber = (isset($data[7]) && $data[7]) ? $data[7] : null;
+				$references = (isset($data[91]) && $data[91]) ? $data[91] : null;
+				logMessage( "Processing " . $catalogNumber . "." );
+				// Get the iNaturalist observation ID
+				$observationid = null;
+				$url = $inatapi . 'observations?field%3AAccession+Number=' . $catalogNumber;
+				$inatdata = make_curl_request( $url );
+				sleep( 1 );
+				if ( $inatdata
+					&& isset( $inatdata['results'] )
+					&& isset( $inatdata['results'][0] )
+					&& isset( $inatdata['results'][0]['id'] )
+				) {
+					$observationid = $inatdata['results'][0]['id'];
+				}
+				// If we successfully got the iNaturalist observation ID ...
+				if ( $observationid ) {
+					// ... and the MyCoPortal link is not already set ...
+					if ( !get_mycoportal_link( $observationid ) ) {
+						// ... and the new MyCoPortal link is valid ...
+						if ( filter_var( $references, FILTER_VALIDATE_URL ) ) {
+							// ... post the MyCoPortal link to the iNaturalist observation
+							$updateResult1 = post_mycoportal_link( $observationid, $references, $token );
+						} else {
+							$errors[] = 'MyCoPortal link is not a valid URL for ' . $catalogNumber . '.';
+						}
+						// Post the fungarium location to the iNaturalist observation
+						$updateResult2 = post_fungarium( $observationid, $institionCode, $token );
 					} else {
-						$errors[] = 'MyCoPortal link is not a valid URL for ' . $catalogNumber . '.';
+						$errors[] = 'MyCoPortal link already set for ' . $catalogNumber . '.';
 					}
-					// Post the fungarium location to the iNaturalist observation
-					$updateResult2 = post_fungarium( $observationid, $institionCode, $token );
 				} else {
-					$errors[] = 'MyCoPortal link already set for ' . $catalogNumber . '.';
+					$errors[] = 'No observation found for ' . $catalogNumber . '.';
 				}
-			} else {
-				$errors[] = 'No observation found for ' . $catalogNumber . '.';
-			}
-			if ( $updateResult1 && $updateResult2 ) {
-				print( $catalogNumber . " successfully updated: " . $observationid . ".\n" );
-			} else {
-				print( $catalogNumber . " not successfully updated.\n" );
-			}
-			if ( $errors ) {
-				if ( count($errors) === 1 ) {
-					print( "Errors: " . $errors[0] . "\n" );
+				if ( $updateResult1 && $updateResult2 ) {
+					print( $catalogNumber . " successfully updated: " . $observationid . ".\n" );
 				} else {
-					print( "Errors:\n" );
-					foreach ( $errors as $error ) {
-						print( '   ' . $error . "\n" );
+					print( $catalogNumber . " not successfully updated.\n" );
+				}
+				if ( $errors ) {
+					if ( count($errors) === 1 ) {
+						print( "Errors: " . $errors[0] . "\n" );
+					} else {
+						print( "Errors:\n" );
+						foreach ( $errors as $error ) {
+							print( '   ' . $error . "\n" );
+						}
 					}
 				}
+				print( "\n" );
+				$x++;
 			}
-			print( "\n" );
-			$x++;
+			fclose($fh);
+		} else {
+			print( "Error: Could not open " . $myFile . ".\n" );
 		}
-		fclose($fh);
+	} else {
+		print( "Error: No access token provided by iNaturalist API.\n" );
 	}
-
 } else {
-	print( "Errors:\n" );
-	foreach ( $errors as $error ) {
-		print( '   ' . $error . "\n" );
-	}
+	print( "Error: iNaturalist authentication request failed.\n" );
 }
 $end_time = microtime( true );
 $execution_time = ( $end_time - $start_time );
