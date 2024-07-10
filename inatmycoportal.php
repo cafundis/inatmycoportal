@@ -310,6 +310,7 @@ if ( $response ) {
 	
 		if (($fh = fopen($myFile, "r")) !== FALSE) {
 			$data = fgetcsv($fh, 0, ","); // Get headers
+			$x = 0;
 			while (($data = fgetcsv($fh, 0, ",")) !== FALSE && $x < $recordlimit) {
 				$updateResult1 = false;
 				$updateResult2 = false;
